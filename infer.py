@@ -3,14 +3,17 @@ import runpod
 import base64
 import faster_whisper
 import tempfile
+from whisper_online import *
 
 import torch
+
+
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model_name = 'ivrit-ai/faster-whisper-v2-d3-e3'
-model = faster_whisper.WhisperModel(model_name, device=device)
-
+#model = faster_whisper.WhisperModel(model_name, device=device)
+model = FasterWhisperASR(model_name, modelsize=None, cache_dir=None, model_dir=None)
 import requests
 
 # Maximum data size: 200MB
@@ -88,12 +91,39 @@ def transcribe(job):
         result = transcribe_core(audio_file)
         return { 'result' : result }
 
+
+def transcribe_whisper_streaming(job):
+    datatype = job['input'].get('type', None)
+    if not datatype:
+        return {"error": "datatype field not provided. Should be 'blob' or 'url'."}
+
+    if not datatype in ['blob', 'url']:
+        return {"error": f"datatype should be 'blob' or 'url', but is {datatype} instead."}
+
+    # Get the API key from the job input
+    api_key = job['input'].get('api_key', None)
+
+    with tempfile.TemporaryDirectory() as d:
+        audio_file = f'{d}/audio.mp3'
+
+        if datatype == 'blob':
+            mp3_bytes = base64.b64decode(job['input']['data'])
+            open(audio_file, 'wb').write(mp3_bytes)
+        elif datatype == 'url':
+            success = download_file(job['input']['url'], MAX_PAYLOAD_SIZE, audio_file, api_key)
+            if not success:
+                return {"error": f"Error downloading data from {job['input']['url']}"}
+
+        result = transcribe_core(audio_file)
+        return {'result': result}
+
+
 def transcribe_core(audio_file):
     print('Transcribing...')
 
     ret = { 'segments' : [] }
 
-    segs, dummy = model.transcribe(audio_file, language='he', word_timestamps=True)
+    segs, dummy = model.transcribe(audio_file,init_prompt="")
     for s in segs:
         words = []
         for w in s.words:
@@ -106,4 +136,4 @@ def transcribe_core(audio_file):
 
     return ret
 
-runpod.serverless.start({"handler": transcribe})
+runpod.serverless.start({"handler": transcribe_whisper_streaming})
