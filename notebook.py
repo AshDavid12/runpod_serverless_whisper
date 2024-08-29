@@ -8,7 +8,7 @@ load_dotenv('.env')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 RUN_POD_API_KEY = os.getenv('RUN_POD_API_KEY')
 RUNPOD_ENDPOINT_ID =os.getenv('RUNPOD_ENDPOINT_ID')
-openai.api_key = OPENAI_API_KEY
+
 
 mp3_data = open('me-hebrew.wav', 'rb').read()
 data = base64.b64encode(mp3_data).decode('utf-8')
