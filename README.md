@@ -1,110 +1,33 @@
-# runpod-serverless
+# Whisper Streaming Ivrit-AI
 
-A template for transcribing Hebrew audio using runpod.io serverless infrastructure.
+This project is built on the **ivrit-ai serverless model** and **Whisper Streaming** for real-time Hebrew transcription using a modified setup. The key change is that the transcription model is wrapped inside the `FasterWhisperASR` class, available in the `whisper_online` module.
 
-Note: if you register at [runpod.io], we'd like to ask you to consider using our [referral link](https://runpod.io/?ref=06octndf).
-It provides us with more credits, which we can then use to provide better services.
+## Project Overview
 
-## Description
+- **Model**: ivrit-ai's Hebrew transcription model.
+- **Deployment**: Serverless infrastructure on **Runpod** using a custom Docker image.
+- **Customization**: `infer.py` is updated to wrap the transcription model with `FasterWhisperASR` for faster and more efficient streaming transcription.
 
-This project provides a serverless solution for transcribing Hebrew audio files. It leverages runpod.io's infrastructure to process audio files efficiently and return transcriptions.
-It is part of the [ivrit.ai](https://ivrit.ai) non-profit project.
+## Setup and Deployment
 
-## Contents
+1. **Docker Image**: A custom Docker image is built using a **GitHub Actions** workflow. The `Dockerfile` builds and pushes the image to Runpod.
+2. **Runpod Deployment**: After building the Docker image, deploy it on Runpod using the following steps:
+   - Use the provided `runpod.yaml` template.
+   - Adjust container settings, including disk size and worker settings as needed.
+   - Deploy the Docker image using: `yairlifshitz/faster-whisper-v2-d4:v1.0`.
+   
+### Docker Build Steps
 
-- `Dockerfile`: Used to create the Docker image for the serverless function.
-- `infer.py`: The main script that handles the transcription process, placed inside the Docker image.
-
-## Setting up your inference endpoint
-
-1. Log in to [runpod.io]
-2. Choose Menu->Serverless
-3. Choose New Endpoint
-4. Select the desired worker configuration.
-   - You can choose the cheapest worker (16GB GPU, $0.00016/second as of August 1st, 2024).
-   - Active workers can be 0, max workers is 1 or more.
-   - GPUs/worker should be set to 1.
-   - Container image should be set to **yairlifshitz/fw-v2-d3-e3:v0.34**, or your own Docker image (instruction later on how to build this).
-   - Container disk should have at least 20 GB.
-5. Click Deploy.
-
-## Building your own Docker image
-
-1. Clone this repository:
-
-```
-git clone https://github.com/yourusername/runpod-serverless.git
-cd runpod-serverless
-```
-
-2. Build the Docker image:
-
-```
-docker build -t runpod-serverless .
-```
-
-3. Push the image to a public Docker repository:
-
-a. If you haven't already, create an account on [Docker Hub](https://hub.docker.com/).
-
-b. Log in to Docker Hub from your command line:
-   ```
-   docker login
-   ```
-
-c. Tag your image with your Docker Hub username:
-   ```
-   docker tag runpod-serverless yourusername/runpod-serverless:latest
-   ```
-
-d. Push the image to Docker Hub:
-   ```
-   docker push yourusername/runpod-serverless:latest
-   ```
-
-4. Set up a serverless function on runpod.io using the pushed image.
+1. Clone the repository:
+    ```bash
+    git clone <repo-url>
+    ```
+2. Build and push the Docker image using the provided GitHub Actions workflow (`docker-image.yaml`).
+3. Deploy the Docker image on Runpod by following the instructions in the `runpod.yaml` template.
 
 ## Usage
 
-Once deployed on runpod.io, you can transcribe Hebrew audio either by providing a URL to transcribe (up to 200MB), or by uploading a file (up to 10MB).
+To start transcription in real-time using the serverless model:
+1. Provide audio input via a WAV file or microphone.
+2. The transcription will stream in real-time to the client, leveraging the Hebrew transcription model.
 
-### URL-based transcription
-
-```
-import runpod
-import base64
-
-payload = { 'type' : 'url', 'url' : 'https://your-audio-url' }
-
-runpod.api_key = '<Your runpod.io API key>'
-ep = runpod.Endpoint("<endpoint key>")
-res = ep.run_sync(payload)
-```
-
-### File upload
-
-```
-import runpod
-import base64
-
-mp3_data = open('<file>.mp3', 'rb').read()
-data = base64.b64encode(mp3_data).decode('utf-8')
-payload = { 'type' : 'blob', 'data' : data }
-
-runpod.api_key = '<Your runpod.io API key>'
-ep = runpod.Endpoint("<endpoint key>")
-res = ep.run_sync(payload)
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-Our code and model are released under the MIT license.
-
-## Acknowledgements
-
-- [Our long list of data contributors](https://www.ivrit.ai/en/credits)
-- Our data annotation volunteers!
